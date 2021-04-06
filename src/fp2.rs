@@ -1,8 +1,6 @@
 //! This module implements arithmetic over the quadratic extension field Fp2.
 
 #[cfg(feature = "canon")]
-use canonical::Canon;
-#[cfg(feature = "canon")]
 use canonical_derive::Canon;
 use core::fmt;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
@@ -10,7 +8,8 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde_req")]
 use serde::{
-    self, de::Visitor, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer,
+    self, de::Visitor, ser::SerializeStruct, Deserialize, Deserializer,
+    Serialize, Serializer,
 };
 
 use crate::fp::Fp;
@@ -105,7 +104,9 @@ impl<'de> Deserialize<'de> for Fp2 {
                         match value {
                             "c0" => Ok(Field::C0),
                             "c1" => Ok(Field::C1),
-                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                            _ => Err(serde::de::Error::unknown_field(
+                                value, FIELDS,
+                            )),
                         }
                     }
                 }
@@ -119,7 +120,10 @@ impl<'de> Deserialize<'de> for Fp2 {
         impl<'de> Visitor<'de> for Fp2Visitor {
             type Value = Fp2;
 
-            fn expecting(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+            fn expecting(
+                &self,
+                formatter: &mut ::core::fmt::Formatter,
+            ) -> ::core::fmt::Result {
                 formatter.write_str("struct Fp2")
             }
 
@@ -127,12 +131,12 @@ impl<'de> Deserialize<'de> for Fp2 {
             where
                 V: serde::de::SeqAccess<'de>,
             {
-                let c0 = seq
-                    .next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
-                let c1 = seq
-                    .next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
+                let c0 = seq.next_element()?.ok_or_else(|| {
+                    serde::de::Error::invalid_length(0, &self)
+                })?;
+                let c1 = seq.next_element()?.ok_or_else(|| {
+                    serde::de::Error::invalid_length(0, &self)
+                })?;
                 Ok(Fp2 { c0, c1 })
             }
         }
@@ -357,8 +361,9 @@ impl Fp2 {
 
             // In the event that alpha = -1, the element is order p - 1 and so
             // we're just trying to get the square of an element of the subfield
-            // Fp. This is given by x0 * u, since u = sqrt(-1). Since the element
-            // x0 = a + bu has b = 0, the solution is therefore au.
+            // Fp. This is given by x0 * u, since u = sqrt(-1). Since the
+            // element x0 = a + bu has b = 0, the solution is
+            // therefore au.
             CtOption::new(
                 Fp2 {
                     c0: -x0.c1,
@@ -366,7 +371,8 @@ impl Fp2 {
                 },
                 alpha.ct_eq(&(&Fp2::one()).neg()),
             )
-            // Otherwise, the correct solution is (1 + alpha)^((q - 1) // 2) * x0
+            // Otherwise, the correct solution is (1 + alpha)^((q - 1) // 2) *
+            // x0
             .or_else(|| {
                 CtOption::new(
                     (alpha + Fp2::one()).pow_vartime(&[

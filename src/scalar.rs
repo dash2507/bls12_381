@@ -1,16 +1,17 @@
-//! This module provides an implementation of the BLS12-381 scalar field $\mathbb{F}_q$
-//! where `q = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001`
+//! This module provides an implementation of the BLS12-381 scalar field
+//! $\mathbb{F}_q$ where `q =
+//! 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001`
 
 use crate::util::{adc, mac, sbb};
-#[cfg(feature = "canon")]
-use canonical::Canon;
 #[cfg(feature = "canon")]
 use canonical_derive::Canon;
 use core::borrow::Borrow;
 use core::cmp::{Ord, Ordering, PartialOrd};
 use core::convert::TryFrom;
 use core::iter::{Product, Sum};
-use core::ops::{Add, AddAssign, BitAnd, BitXor, Mul, MulAssign, Neg, Sub, SubAssign};
+use core::ops::{
+    Add, AddAssign, BitAnd, BitXor, Mul, MulAssign, Neg, Sub, SubAssign,
+};
 use dusk_bytes::{Error as BytesError, HexDebug, Serializable};
 use rand_core::{CryptoRng, RngCore};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -18,8 +19,8 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 #[cfg(feature = "serde_req")]
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
-/// Represents an element of the scalar field $\mathbb{F}_q$ of the BLS12-381 elliptic
-/// curve construction.
+/// Represents an element of the scalar field $\mathbb{F}_q$ of the BLS12-381
+/// elliptic curve construction.
 // The internal representation of this type is four 64-bit unsigned
 // integers in little-endian order. `Scalar` values are always in
 // Montgomery form; i.e., Scalar(a) = aR mod q, with R = 2^256.
@@ -76,7 +77,9 @@ impl Serializable<32> for Scalar {
     fn to_bytes(&self) -> [u8; Self::SIZE] {
         // Turn into canonical form by computing
         // (a.R) / R = a
-        let tmp = Scalar::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0);
+        let tmp = Scalar::montgomery_reduce(
+            self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0,
+        );
 
         let mut res = [0; Self::SIZE];
         res[0..8].copy_from_slice(&tmp.0[0].to_le_bytes());
@@ -160,8 +163,12 @@ impl<'de> Deserialize<'de> for Scalar {
         impl<'de> Visitor<'de> for ScalarVisitor {
             type Value = Scalar;
 
-            fn expecting(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-                formatter.write_str("a 32-byte cannonical Scalar from Bls12_381")
+            fn expecting(
+                &self,
+                formatter: &mut ::core::fmt::Formatter,
+            ) -> ::core::fmt::Result {
+                formatter
+                    .write_str("a 32-byte cannonical Scalar from Bls12_381")
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Scalar, A::Error>
@@ -171,13 +178,19 @@ impl<'de> Deserialize<'de> for Scalar {
                 let mut bytes = [0u8; Scalar::SIZE];
 
                 for i in 0..Scalar::SIZE {
-                    bytes[i] = seq
-                        .next_element()?
-                        .ok_or(serde::de::Error::invalid_length(i, &"expected 32 bytes"))?;
+                    bytes[i] = seq.next_element()?.ok_or(
+                        serde::de::Error::invalid_length(
+                            i,
+                            &"expected 32 bytes",
+                        ),
+                    )?;
                 }
 
-                Scalar::from_bytes(&bytes)
-                    .map_err(|_| serde::de::Error::custom(&"scalar was not canonically encoded"))
+                Scalar::from_bytes(&bytes).map_err(|_| {
+                    serde::de::Error::custom(
+                        &"scalar was not canonically encoded",
+                    )
+                })
             }
         }
 
@@ -400,7 +413,7 @@ impl Scalar {
         self.ct_eq(&Scalar::zero())
     }
 
-    /// Checks in ct_time whether a Scalar is equal to one.   
+    /// Checks in ct_time whether a Scalar is equal to one.
     pub fn is_one(&self) -> Choice {
         self.ct_eq(&Scalar::one())
     }
@@ -446,19 +459,22 @@ impl Scalar {
     }
 
     fn from_u512(limbs: [u64; 8]) -> Scalar {
-        // We reduce an arbitrary 512-bit number by decomposing it into two 256-bit digits
-        // with the higher bits multiplied by 2^256. Thus, we perform two reductions
+        // We reduce an arbitrary 512-bit number by decomposing it into two
+        // 256-bit digits with the higher bits multiplied by 2^256.
+        // Thus, we perform two reductions
         //
         // 1. the lower bits are multiplied by R^2, as normal
         // 2. the upper bits are multiplied by R^2 * 2^256 = R^3
         //
-        // and computing their sum in the field. It remains to see that arbitrary 256-bit
-        // numbers can be placed into Montgomery form safely using the reduction. The
-        // reduction works so long as the product is less than R=2^256 multiplied by
-        // the modulus. This holds because for any `c` smaller than the modulus, we have
-        // that (2^256 - 1)*c is an acceptable product for the reduction. Therefore, the
-        // reduction always works so long as `c` is in the field; in this case it is either the
-        // constant `R2` or `R3`.
+        // and computing their sum in the field. It remains to see that
+        // arbitrary 256-bit numbers can be placed into Montgomery form
+        // safely using the reduction. The reduction works so long as
+        // the product is less than R=2^256 multiplied by the modulus.
+        // This holds because for any `c` smaller than the modulus, we have
+        // that (2^256 - 1)*c is an acceptable product for the reduction.
+        // Therefore, the reduction always works so long as `c` is in
+        // the field; in this case it is either the constant `R2` or
+        // `R3`.
         let d0 = Scalar([limbs[0], limbs[1], limbs[2], limbs[3]]);
         let d1 = Scalar([limbs[4], limbs[5], limbs[6], limbs[7]]);
         // Convert to Montgomery form
@@ -493,7 +509,9 @@ impl Scalar {
     /// Reduces the scalar and returns it multiplied by the montgomery
     /// radix.
     pub fn reduce(&self) -> Scalar {
-        Scalar::montgomery_reduce(self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0)
+        Scalar::montgomery_reduce(
+            self.0[0], self.0[1], self.0[2], self.0[3], 0, 0, 0, 0,
+        )
     }
 
     /// Squares this element.
@@ -556,16 +574,22 @@ impl Scalar {
 
             for j in 2..max_v {
                 let tmp_is_one = tmp.ct_eq(&Scalar::one());
-                let squared = Scalar::conditional_select(&tmp, &z, tmp_is_one).square();
+                let squared =
+                    Scalar::conditional_select(&tmp, &z, tmp_is_one).square();
                 tmp = Scalar::conditional_select(&squared, &tmp, tmp_is_one);
-                let new_z = Scalar::conditional_select(&z, &squared, tmp_is_one);
+                let new_z =
+                    Scalar::conditional_select(&z, &squared, tmp_is_one);
                 j_less_than_v &= !j.ct_eq(&v);
                 k = u32::conditional_select(&j, &k, tmp_is_one);
                 z = Scalar::conditional_select(&z, &new_z, j_less_than_v);
             }
 
             let result = x * z;
-            x = Scalar::conditional_select(&result, &x, b.ct_eq(&Scalar::one()));
+            x = Scalar::conditional_select(
+                &result,
+                &x,
+                b.ct_eq(&Scalar::one()),
+            );
             z = z.square();
             b *= z;
             v = k;
@@ -808,8 +832,9 @@ impl Scalar {
         let (d2, borrow) = sbb(self.0[2], rhs.0[2], borrow);
         let (d3, borrow) = sbb(self.0[3], rhs.0[3], borrow);
 
-        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
-        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
+        // If underflow occurred on the final limb, borrow = 0xfff...fff,
+        // otherwise borrow = 0x000...000. Thus, we use it as a mask to
+        // conditionally add the modulus.
         let (d0, carry) = adc(d0, MODULUS.0[0] & borrow, 0);
         let (d1, carry) = adc(d1, MODULUS.0[1] & borrow, carry);
         let (d2, carry) = adc(d2, MODULUS.0[2] & borrow, carry);
@@ -844,7 +869,9 @@ impl Scalar {
 
         // `tmp` could be `MODULUS` if `self` was zero. Create a mask that is
         // zero if `self` was zero, and `u64::max_value()` if self was nonzero.
-        let mask = (((self.0[0] | self.0[1] | self.0[2] | self.0[3]) == 0) as u64).wrapping_sub(1);
+        let mask = (((self.0[0] | self.0[1] | self.0[2] | self.0[3]) == 0)
+            as u64)
+            .wrapping_sub(1);
 
         Scalar([d0 & mask, d1 & mask, d2 & mask, d3 & mask])
     }
@@ -934,32 +961,34 @@ fn test_to_bytes() {
     assert_eq!(
         Scalar::zero().to_bytes(),
         [
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0
         ]
     );
 
     assert_eq!(
         Scalar::one().to_bytes(),
         [
-            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0
         ]
     );
 
     assert_eq!(
         R2.to_bytes(),
         [
-            254, 255, 255, 255, 1, 0, 0, 0, 2, 72, 3, 0, 250, 183, 132, 88, 245, 79, 188, 236, 239,
-            79, 140, 153, 111, 5, 197, 172, 89, 177, 36, 24
+            254, 255, 255, 255, 1, 0, 0, 0, 2, 72, 3, 0, 250, 183, 132, 88,
+            245, 79, 188, 236, 239, 79, 140, 153, 111, 5, 197, 172, 89, 177,
+            36, 24
         ]
     );
 
     assert_eq!(
         (-&Scalar::one()).to_bytes(),
         [
-            0, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5, 216, 161, 9, 8,
-            216, 57, 51, 72, 125, 157, 41, 83, 167, 237, 115
+            0, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83,
+            5, 216, 161, 9, 8, 216, 57, 51, 72, 125, 157, 41, 83, 167, 237,
+            115
         ]
     );
 }
@@ -968,8 +997,8 @@ fn test_to_bytes() {
 fn test_from_bytes() {
     assert_eq!(
         Scalar::from_bytes(&[
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0
         ])
         .unwrap(),
         Scalar::zero()
@@ -977,8 +1006,8 @@ fn test_from_bytes() {
 
     assert_eq!(
         Scalar::from_bytes(&[
-            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0
         ])
         .unwrap(),
         Scalar::one()
@@ -986,8 +1015,9 @@ fn test_from_bytes() {
 
     assert_eq!(
         Scalar::from_bytes(&[
-            254, 255, 255, 255, 1, 0, 0, 0, 2, 72, 3, 0, 250, 183, 132, 88, 245, 79, 188, 236, 239,
-            79, 140, 153, 111, 5, 197, 172, 89, 177, 36, 24
+            254, 255, 255, 255, 1, 0, 0, 0, 2, 72, 3, 0, 250, 183, 132, 88,
+            245, 79, 188, 236, 239, 79, 140, 153, 111, 5, 197, 172, 89, 177,
+            36, 24
         ])
         .unwrap(),
         R2
@@ -995,32 +1025,32 @@ fn test_from_bytes() {
 
     // -1 should work
     assert!(Scalar::from_bytes(&[
-        0, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5, 216, 161, 9, 8, 216,
-        57, 51, 72, 125, 157, 41, 83, 167, 237, 115
+        0, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5,
+        216, 161, 9, 8, 216, 57, 51, 72, 125, 157, 41, 83, 167, 237, 115
     ])
     .is_ok());
 
     // modulus is invalid
     assert!(Scalar::from_bytes(&[
-        1, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5, 216, 161, 9, 8, 216,
-        57, 51, 72, 125, 157, 41, 83, 167, 237, 115
+        1, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5,
+        216, 161, 9, 8, 216, 57, 51, 72, 125, 157, 41, 83, 167, 237, 115
     ])
     .is_err());
 
     // Anything larger than the modulus is invalid
     assert!(Scalar::from_bytes(&[
-        2, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5, 216, 161, 9, 8, 216,
-        57, 51, 72, 125, 157, 41, 83, 167, 237, 115
+        2, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5,
+        216, 161, 9, 8, 216, 57, 51, 72, 125, 157, 41, 83, 167, 237, 115
     ])
     .is_err());
     assert!(Scalar::from_bytes(&[
-        1, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5, 216, 161, 9, 8, 216,
-        58, 51, 72, 125, 157, 41, 83, 167, 237, 115
+        1, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5,
+        216, 161, 9, 8, 216, 58, 51, 72, 125, 157, 41, 83, 167, 237, 115
     ])
     .is_err());
     assert!(Scalar::from_bytes(&[
-        1, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5, 216, 161, 9, 8, 216,
-        57, 51, 72, 125, 157, 41, 83, 167, 237, 116
+        1, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5,
+        216, 161, 9, 8, 216, 57, 51, 72, 125, 157, 41, 83, 167, 237, 116
     ])
     .is_err());
 }
@@ -1057,7 +1087,10 @@ fn test_from_u512_max() {
     let max_u64 = 0xffffffffffffffff;
     assert_eq!(
         R3 - R,
-        Scalar::from_u512([max_u64, max_u64, max_u64, max_u64, max_u64, max_u64, max_u64, max_u64])
+        Scalar::from_u512([
+            max_u64, max_u64, max_u64, max_u64, max_u64, max_u64, max_u64,
+            max_u64
+        ])
     );
 }
 
@@ -1066,9 +1099,10 @@ fn test_from_bytes_wide_r2() {
     assert_eq!(
         R2,
         Scalar::from_bytes_wide(&[
-            254, 255, 255, 255, 1, 0, 0, 0, 2, 72, 3, 0, 250, 183, 132, 88, 245, 79, 188, 236, 239,
-            79, 140, 153, 111, 5, 197, 172, 89, 177, 36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            254, 255, 255, 255, 1, 0, 0, 0, 2, 72, 3, 0, 250, 183, 132, 88,
+            245, 79, 188, 236, 239, 79, 140, 153, 111, 5, 197, 172, 89, 177,
+            36, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ])
     );
 }
@@ -1078,9 +1112,10 @@ fn test_from_bytes_wide_negative_one() {
     assert_eq!(
         -&Scalar::one(),
         Scalar::from_bytes_wide(&[
-            0, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5, 216, 161, 9, 8,
-            216, 57, 51, 72, 125, 157, 41, 83, 167, 237, 115, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83,
+            5, 216, 161, 9, 8, 216, 57, 51, 72, 125, 157, 41, 83, 167, 237,
+            115, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ])
     );
 }
@@ -1172,12 +1207,9 @@ fn test_multiplication() {
         tmp *= &cur;
 
         let mut tmp2 = Scalar::zero();
-        for b in cur
-            .to_bytes()
-            .iter()
-            .rev()
-            .flat_map(|byte| (0..8).rev().map(move |i| ((byte >> i) & 1u8) == 1u8))
-        {
+        for b in cur.to_bytes().iter().rev().flat_map(|byte| {
+            (0..8).rev().map(move |i| ((byte >> i) & 1u8) == 1u8)
+        }) {
             let tmp3 = tmp2;
             tmp2.add_assign(&tmp3);
 
@@ -1201,12 +1233,9 @@ fn test_squaring() {
         tmp = tmp.square();
 
         let mut tmp2 = Scalar::zero();
-        for b in cur
-            .to_bytes()
-            .iter()
-            .rev()
-            .flat_map(|byte| (0..8).rev().map(move |i| ((byte >> i) & 1u8) == 1u8))
-        {
+        for b in cur.to_bytes().iter().rev().flat_map(|byte| {
+            (0..8).rev().map(move |i| ((byte >> i) & 1u8) == 1u8)
+        }) {
             let tmp3 = tmp2;
             tmp2.add_assign(&tmp3);
 
@@ -1354,7 +1383,8 @@ fn test_iter_sum() {
 
 #[test]
 fn test_iter_prod() {
-    let scalars = vec![Scalar::one() + Scalar::one(), Scalar::one() + Scalar::one()];
+    let scalars =
+        vec![Scalar::one() + Scalar::one(), Scalar::one() + Scalar::one()];
     let res: Scalar = scalars.iter().product();
     assert_eq!(res, Scalar::from(4u64));
 }
@@ -1386,25 +1416,29 @@ fn random_scalar_generation() {
 fn bit_repr() {
     let two_pow_128 = Scalar::from(2u64).pow(&[128, 0, 0, 0]);
     let two_pow_128_bits = [
-        0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 1, 0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ];
     assert_eq!(&two_pow_128.to_bits()[..], &two_pow_128_bits[..]);
 
-    let two_pow_128_minus_rand = Scalar::from(2u64).pow(&[128, 0, 0, 0]) - Scalar::from(7568589u64);
+    let two_pow_128_minus_rand =
+        Scalar::from(2u64).pow(&[128, 0, 0, 0]) - Scalar::from(7568589u64);
     let two_pow_128_bits = [
-        1u8, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1,
+        1u8, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1,
     ];
     assert_eq!(
         &two_pow_128_minus_rand.to_bits()[..128],

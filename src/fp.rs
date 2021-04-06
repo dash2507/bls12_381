@@ -1,8 +1,7 @@
 //! This module provides an implementation of the BLS12-381 base field `GF(p)`
-//! where `p = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab`
+//! where `p =
+//! 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab`
 
-#[cfg(feature = "canon")]
-use canonical::Canon;
 #[cfg(feature = "canon")]
 use canonical_derive::Canon;
 use core::convert::TryFrom;
@@ -11,7 +10,8 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[cfg(feature = "serde_req")]
 use serde::{
-    self, de::Visitor, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer,
+    self, de::Visitor, ser::SerializeSeq, Deserialize, Deserializer, Serialize,
+    Serializer,
 };
 
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -87,7 +87,10 @@ impl<'de> Deserialize<'de> for Fp {
         impl<'de> Visitor<'de> for FpVisitor {
             type Value = Fp;
 
-            fn expecting(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+            fn expecting(
+                &self,
+                formatter: &mut ::core::fmt::Formatter,
+            ) -> ::core::fmt::Result {
                 formatter.write_str("a prover key with valid powers per points")
             }
 
@@ -97,15 +100,20 @@ impl<'de> Deserialize<'de> for Fp {
             {
                 let mut bytes = [0u8; 48];
                 for i in 0..48 {
-                    bytes[i] = seq
-                        .next_element()?
-                        .ok_or(serde::de::Error::invalid_length(i, &"expected 48 bytes"))?;
+                    bytes[i] = seq.next_element()?.ok_or(
+                        serde::de::Error::invalid_length(
+                            i,
+                            &"expected 48 bytes",
+                        ),
+                    )?;
                 }
                 let res = Fp::from_bytes(&bytes);
                 if res.is_some().unwrap_u8() == 1u8 {
                     return Ok(res.unwrap());
                 } else {
-                    return Err(serde::de::Error::custom(&"fp was not canonically encoded"));
+                    return Err(serde::de::Error::custom(
+                        &"fp was not canonically encoded",
+                    ));
                 }
             }
         }
@@ -230,12 +238,18 @@ impl Fp {
     pub fn from_bytes(bytes: &[u8; 48]) -> CtOption<Fp> {
         let mut tmp = Fp([0, 0, 0, 0, 0, 0]);
 
-        tmp.0[5] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[0..8]).unwrap());
-        tmp.0[4] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[8..16]).unwrap());
-        tmp.0[3] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[16..24]).unwrap());
-        tmp.0[2] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[24..32]).unwrap());
-        tmp.0[1] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[32..40]).unwrap());
-        tmp.0[0] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[40..48]).unwrap());
+        tmp.0[5] =
+            u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[0..8]).unwrap());
+        tmp.0[4] =
+            u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[8..16]).unwrap());
+        tmp.0[3] =
+            u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[16..24]).unwrap());
+        tmp.0[2] =
+            u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[24..32]).unwrap());
+        tmp.0[1] =
+            u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[32..40]).unwrap());
+        tmp.0[0] =
+            u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[40..48]).unwrap());
 
         // Try to subtract the modulus
         let (_, borrow) = sbb(tmp.0[0], MODULUS[0], 0);
@@ -263,7 +277,8 @@ impl Fp {
         // Turn into canonical form by computing
         // (a.R) / R = a
         let tmp = Fp::montgomery_reduce(
-            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], 0, 0, 0, 0, 0, 0,
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5],
+            0, 0, 0, 0, 0, 0,
         );
 
         let mut res = [0; 48];
@@ -287,7 +302,8 @@ impl Fp {
 
         // First, because self is in Montgomery form we need to reduce it
         let tmp = Fp::montgomery_reduce(
-            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5], 0, 0, 0, 0, 0, 0,
+            self.0[0], self.0[1], self.0[2], self.0[3], self.0[4], self.0[5],
+            0, 0, 0, 0, 0, 0,
         );
 
         let (_, borrow) = sbb(tmp.0[0], 0xdcff7fffffffd556, 0);
@@ -380,8 +396,8 @@ impl Fp {
         let (r4, borrow) = sbb(self.0[4], MODULUS[4], borrow);
         let (r5, borrow) = sbb(self.0[5], MODULUS[5], borrow);
 
-        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
-        // borrow = 0x000...000. Thus, we use it as a mask!
+        // If underflow occurred on the final limb, borrow = 0xfff...fff,
+        // otherwise borrow = 0x000...000. Thus, we use it as a mask!
         let r0 = (self.0[0] & borrow) | (r0 & !borrow);
         let r1 = (self.0[1] & borrow) | (r1 & !borrow);
         let r2 = (self.0[2] & borrow) | (r2 & !borrow);
@@ -417,8 +433,13 @@ impl Fp {
 
         // Let's use a mask if `self` was zero, which would mean
         // the result of the subtraction is p.
-        let mask = (((self.0[0] | self.0[1] | self.0[2] | self.0[3] | self.0[4] | self.0[5]) == 0)
-            as u64)
+        let mask = (((self.0[0]
+            | self.0[1]
+            | self.0[2]
+            | self.0[3]
+            | self.0[4]
+            | self.0[5])
+            == 0) as u64)
             .wrapping_sub(1);
 
         Fp([
@@ -558,7 +579,9 @@ impl Fp {
         let (t9, carry) = mac(t9, self.0[5], rhs.0[4], carry);
         let (t10, t11) = mac(t10, self.0[5], rhs.0[5], carry);
 
-        Self::montgomery_reduce(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11)
+        Self::montgomery_reduce(
+            t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11,
+        )
     }
 
     /// Squares this element.
@@ -609,7 +632,9 @@ impl Fp {
         let (t10, carry) = mac(t10, self.0[5], self.0[5], carry);
         let (t11, _) = adc(t11, 0, carry);
 
-        Self::montgomery_reduce(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11)
+        Self::montgomery_reduce(
+            t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11,
+        )
     }
 }
 
@@ -816,18 +841,20 @@ fn test_from_bytes() {
     assert_eq!(
         -Fp::one(),
         Fp::from_bytes(&[
-            26, 1, 17, 234, 57, 127, 230, 154, 75, 27, 167, 182, 67, 75, 172, 215, 100, 119, 75,
-            132, 243, 133, 18, 191, 103, 48, 210, 160, 246, 176, 246, 36, 30, 171, 255, 254, 177,
-            83, 255, 255, 185, 254, 255, 255, 255, 255, 170, 170
+            26, 1, 17, 234, 57, 127, 230, 154, 75, 27, 167, 182, 67, 75, 172,
+            215, 100, 119, 75, 132, 243, 133, 18, 191, 103, 48, 210, 160, 246,
+            176, 246, 36, 30, 171, 255, 254, 177, 83, 255, 255, 185, 254, 255,
+            255, 255, 255, 170, 170
         ])
         .unwrap()
     );
 
     assert!(
         Fp::from_bytes(&[
-            27, 1, 17, 234, 57, 127, 230, 154, 75, 27, 167, 182, 67, 75, 172, 215, 100, 119, 75,
-            132, 243, 133, 18, 191, 103, 48, 210, 160, 246, 176, 246, 36, 30, 171, 255, 254, 177,
-            83, 255, 255, 185, 254, 255, 255, 255, 255, 170, 170
+            27, 1, 17, 234, 57, 127, 230, 154, 75, 27, 167, 182, 67, 75, 172,
+            215, 100, 119, 75, 132, 243, 133, 18, 191, 103, 48, 210, 160, 246,
+            176, 246, 36, 30, 171, 255, 254, 177, 83, 255, 255, 185, 254, 255,
+            255, 255, 255, 170, 170
         ])
         .is_none()
         .unwrap_u8()

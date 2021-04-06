@@ -1,4 +1,5 @@
-//! This module provides an implementation of the $\mathbb{G}_2$ group of BLS12-381.
+//! This module provides an implementation of the $\mathbb{G}_2$ group of
+//! BLS12-381.
 
 use crate::fp::Fp;
 use crate::fp2::Fp2;
@@ -11,18 +12,19 @@ use dusk_bytes::{Error as BytesError, HexDebug, Serializable};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "canon")]
-use canonical::{Canon, InvalidEncoding, Sink, Source, Store};
+use canonical::{Canon, CanonError, Sink, Source};
 #[cfg(feature = "canon")]
 use canonical_derive::Canon;
 #[cfg(feature = "serde_req")]
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 
-/// This is an element of $\mathbb{G}_2$ represented in the affine coordinate space.
-/// It is ideal to keep elements in this representation to reduce memory usage and
-/// improve performance through the use of mixed curve model arithmetic.
+/// This is an element of $\mathbb{G}_2$ represented in the affine coordinate
+/// space. It is ideal to keep elements in this representation to reduce memory
+/// usage and improve performance through the use of mixed curve model
+/// arithmetic.
 ///
-/// Values of `G2Affine` are guaranteed to be in the $q$-order subgroup unless an
-/// "unchecked" API was misused.
+/// Values of `G2Affine` are guaranteed to be in the $q$-order subgroup unless
+/// an "unchecked" API was misused.
 #[derive(Copy, Clone, HexDebug)]
 pub struct G2Affine {
     pub(crate) x: Fp2,
@@ -31,19 +33,17 @@ pub struct G2Affine {
 }
 
 #[cfg(feature = "canon")]
-impl<S: Store> Canon<S> for G2Affine {
-    fn write(&self, sink: &mut impl Sink<S>) -> Result<(), S::Error> {
-        sink.copy_bytes(&self.to_bytes());
-
-        Ok(())
+impl Canon for G2Affine {
+    fn encode(&self, sink: &mut Sink) {
+        sink.copy_bytes(&self.to_bytes())
     }
 
-    fn read(source: &mut impl Source<S>) -> Result<Self, S::Error> {
+    fn decode(source: &mut Source) -> Result<Self, CanonError> {
         let mut bytes = [0u8; Self::SIZE];
 
         bytes.copy_from_slice(source.read_bytes(Self::SIZE));
 
-        Self::from_bytes(&bytes).map_err(|_| InvalidEncoding.into())
+        Self::from_bytes(&bytes).map_err(|_| CanonError::InvalidEncoding)
     }
 
     fn encoded_len(&self) -> usize {
@@ -71,7 +71,11 @@ impl<'a> From<&'a G2Projective> for G2Affine {
             infinity: Choice::from(0u8),
         };
 
-        G2Affine::conditional_select(&tmp, &G2Affine::identity(), zinv.is_zero())
+        G2Affine::conditional_select(
+            &tmp,
+            &G2Affine::identity(),
+            zinv.is_zero(),
+        )
     }
 }
 
@@ -100,7 +104,11 @@ impl ConditionallySelectable for G2Affine {
         G2Affine {
             x: Fp2::conditional_select(&a.x, &b.x, choice),
             y: Fp2::conditional_select(&a.y, &b.y, choice),
-            infinity: Choice::conditional_select(&a.infinity, &b.infinity, choice),
+            infinity: Choice::conditional_select(
+                &a.infinity,
+                &b.infinity,
+                choice,
+            ),
         }
     }
 }
@@ -116,11 +124,13 @@ impl PartialEq for G2Affine {
 impl Serializable<96> for G2Affine {
     type Error = BytesError;
 
-    /// Serializes this element into compressed form. See [`notes::serialization`](crate::notes::serialization)
-    /// for details about how group elements are serialized.
+    /// Serializes this element into compressed form. See
+    /// [`notes::serialization`](crate::notes::serialization) for details
+    /// about how group elements are serialized.
     fn to_bytes(&self) -> [u8; Self::SIZE] {
-        // Strictly speaking, self.x is zero already when self.infinity is true, but
-        // to guard against implementation mistakes we do not assume this.
+        // Strictly speaking, self.x is zero already when self.infinity is true,
+        // but to guard against implementation mistakes we do not assume
+        // this.
         let x = Fp2::conditional_select(&self.x, &Fp2::zero(), self.infinity);
 
         let mut res = [0; Self::SIZE];
@@ -131,12 +141,13 @@ impl Serializable<96> for G2Affine {
         // This point is in compressed form, so we set the most significant bit.
         res[0] |= 1u8 << 7;
 
-        // Is this point at infinity? If so, set the second-most significant bit.
+        // Is this point at infinity? If so, set the second-most significant
+        // bit.
         res[0] |= u8::conditional_select(&0u8, &(1u8 << 6), self.infinity);
 
-        // Is the y-coordinate the lexicographically largest of the two associated with the
-        // x-coordinate? If so, set the third-most significant bit so long as this is not
-        // the point at infinity.
+        // Is the y-coordinate the lexicographically largest of the two
+        // associated with the x-coordinate? If so, set the third-most
+        // significant bit so long as this is not the point at infinity.
         res[0] |= u8::conditional_select(
             &0u8,
             &(1u8 << 5),
@@ -146,11 +157,13 @@ impl Serializable<96> for G2Affine {
         res
     }
 
-    /// Attempts to deserialize a compressed element. See [`notes::serialization`](crate::notes::serialization)
-    /// for details about how group elements are serialized.
+    /// Attempts to deserialize a compressed element. See
+    /// [`notes::serialization`](crate::notes::serialization) for details
+    /// about how group elements are serialized.
     fn from_bytes(buf: &[u8; Self::SIZE]) -> Result<Self, Self::Error> {
         // We already know the point is on the curve because this is established
-        // by the y-coordinate recovery procedure in from_compressed_unchecked().
+        // by the y-coordinate recovery procedure in
+        // from_compressed_unchecked().
 
         // Obtain the three flags from the start of the byte sequence
         let compression_flag_set = Choice::from((buf[0] >> 7) & 1);
@@ -190,7 +203,7 @@ impl Serializable<96> for G2Affine {
                         infinity_flag_set & // Infinity flag should be set
                     compression_flag_set & // Compression flag should be set
                     (!sort_flag_set) & // Sort flag should not be set
-                    x.is_zero(), // The x-coordinate should be zero
+                    x.is_zero(), /* The x-coordinate should be zero */
                     )
                     .or_else(|| {
                         // Recover a y-coordinate given x by y = sqrt(x^3 + 4)
@@ -250,7 +263,10 @@ impl<'de> Deserialize<'de> for G2Affine {
         impl<'de> Visitor<'de> for G2AffineVisitor {
             type Value = G2Affine;
 
-            fn expecting(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+            fn expecting(
+                &self,
+                formatter: &mut ::core::fmt::Formatter,
+            ) -> ::core::fmt::Result {
                 formatter.write_str("a 48-byte cannonical compressed G2Affine point from Bls12_381")
             }
 
@@ -260,13 +276,18 @@ impl<'de> Deserialize<'de> for G2Affine {
             {
                 let mut bytes = [0u8; G2Affine::SIZE];
                 for i in 0..G2Affine::SIZE {
-                    bytes[i] = seq
-                        .next_element()?
-                        .ok_or(serde::de::Error::invalid_length(i, &"expected 48 bytes"))?;
+                    bytes[i] = seq.next_element()?.ok_or(
+                        serde::de::Error::invalid_length(
+                            i,
+                            &"expected 48 bytes",
+                        ),
+                    )?;
                 }
 
                 G2Affine::from_bytes(&bytes).map_err(|_| {
-                    serde::de::Error::custom(&"compressed G2Affine was not canonically encoded")
+                    serde::de::Error::custom(
+                        &"compressed G2Affine was not canonically encoded",
+                    )
                 })
             }
         }
@@ -380,7 +401,8 @@ impl G2Affine {
         }
     }
 
-    /// Returns a fixed generator of the group. See [`notes::design`](notes/design/index.html#fixed-generators)
+    /// Returns a fixed generator of the group. See
+    /// [`notes::design`](notes/design/index.html#fixed-generators)
     /// for how this generator is chosen.
     pub fn generator() -> G2Affine {
         G2Affine {
@@ -426,8 +448,8 @@ impl G2Affine {
 
     /// Raw bytes representation
     ///
-    /// The intended usage of this function is for trusted sets of data where performance is
-    /// critical.
+    /// The intended usage of this function is for trusted sets of data where
+    /// performance is critical.
     ///
     /// For secure serialization, check `to_bytes`
     pub fn to_raw_bytes(&self) -> [u8; Self::RAW_SIZE] {
@@ -449,15 +471,17 @@ impl G2Affine {
         bytes
     }
 
-    /// Create a `G2Affine` from a set of bytes created by `G2Affine::to_raw_bytes`.
+    /// Create a `G2Affine` from a set of bytes created by
+    /// `G2Affine::to_raw_bytes`.
     ///
-    /// No check is performed and no constant time is granted. The expected usage of this function
-    /// is for trusted bytes where performance is critical.
+    /// No check is performed and no constant time is granted. The expected
+    /// usage of this function is for trusted bytes where performance is
+    /// critical.
     ///
     /// For secure serialization, check `from_bytes`
     ///
-    /// After generating the point, you can check `is_on_curve` and `is_torsion_free` to grant its
-    /// security
+    /// After generating the point, you can check `is_on_curve` and
+    /// `is_torsion_free` to grant its security
     pub unsafe fn from_slice_unchecked(bytes: &[u8]) -> Self {
         let mut xc0 = [0u64; 6];
         let mut xc1 = [0u64; 6];
@@ -498,13 +522,14 @@ impl G2Affine {
         self.infinity
     }
 
-    /// Returns true if this point is free of an $h$-torsion component, and so it
-    /// exists within the $q$-order subgroup $\mathbb{G}_2$. This should always return true
-    /// unless an "unchecked" API was used.
+    /// Returns true if this point is free of an $h$-torsion component, and so
+    /// it exists within the $q$-order subgroup $\mathbb{G}_2$. This should
+    /// always return true unless an "unchecked" API was used.
     pub fn is_torsion_free(&self) -> Choice {
         const FQ_MODULUS_BYTES: [u8; 32] = [
-            1, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83, 5, 216, 161, 9, 8,
-            216, 57, 51, 72, 125, 157, 41, 83, 167, 237, 115,
+            1, 0, 0, 0, 255, 255, 255, 255, 254, 91, 254, 255, 2, 164, 189, 83,
+            5, 216, 161, 9, 8, 216, 57, 51, 72, 125, 157, 41, 83, 167, 237,
+            115,
         ];
 
         // Clear the r-torsion from the point and check if it is the identity
@@ -521,7 +546,8 @@ impl G2Affine {
     }
 }
 
-/// This is an element of $\mathbb{G}_2$ represented in the projective coordinate space.
+/// This is an element of $\mathbb{G}_2$ represented in the projective
+/// coordinate space.
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "canon", derive(Canon))]
 pub struct G2Projective {
@@ -548,7 +574,8 @@ impl From<G2Affine> for G2Projective {
 
 impl ConstantTimeEq for G2Projective {
     fn ct_eq(&self, other: &Self) -> Choice {
-        // Is (xz^2, yz^3, z) equal to (x'z'^2, yz'^3, z') when converted to affine?
+        // Is (xz^2, yz^3, z) equal to (x'z'^2, yz'^3, z') when converted to
+        // affine?
 
         let z = other.z.square();
         let x1 = self.x * z;
@@ -656,7 +683,8 @@ impl G2Projective {
         }
     }
 
-    /// Returns a fixed generator of the group. See [`notes::design`](notes/design/index.html#fixed-generators)
+    /// Returns a fixed generator of the group. See
+    /// [`notes::design`](notes/design/index.html#fixed-generators)
     /// for how this generator is chosen.
     pub fn generator() -> G2Projective {
         G2Projective {
@@ -729,21 +757,28 @@ impl G2Projective {
             z: z3,
         };
 
-        G2Projective::conditional_select(&tmp, &G2Projective::identity(), self.is_identity())
+        G2Projective::conditional_select(
+            &tmp,
+            &G2Projective::identity(),
+            self.is_identity(),
+        )
     }
 
     /// Adds this point to another point.
     pub fn add(&self, rhs: &G2Projective) -> G2Projective {
-        // This Jacobian point addition technique is based on the implementation in libsecp256k1,
-        // which assumes that rhs has z=1. Let's address the case of zero z-coordinates generally.
+        // This Jacobian point addition technique is based on the implementation
+        // in libsecp256k1, which assumes that rhs has z=1. Let's
+        // address the case of zero z-coordinates generally.
 
-        // If self is the identity, return rhs. Otherwise, return self. The other cases will be
-        // predicated on neither self nor rhs being the identity.
+        // If self is the identity, return rhs. Otherwise, return self. The
+        // other cases will be predicated on neither self nor rhs being
+        // the identity.
         let f1 = self.is_identity();
         let res = G2Projective::conditional_select(self, rhs, f1);
         let f2 = rhs.is_identity();
 
-        // If neither are the identity but x1 = x2 and y1 != y2, then return the identity
+        // If neither are the identity but x1 = x2 and y1 != y2, then return the
+        // identity
         let z = rhs.z.square();
         let u1 = self.x * z;
         let z = z * rhs.z;
@@ -753,8 +788,11 @@ impl G2Projective {
         let z = z * self.z;
         let s2 = rhs.y * z;
         let f3 = u1.ct_eq(&u2) & (!s1.ct_eq(&s2));
-        let res =
-            G2Projective::conditional_select(&res, &G2Projective::identity(), (!f1) & (!f2) & f3);
+        let res = G2Projective::conditional_select(
+            &res,
+            &G2Projective::identity(),
+            (!f1) & (!f2) & f3,
+        );
 
         let t = u1 + u2;
         let m = s1 + s2;
@@ -763,8 +801,9 @@ impl G2Projective {
         let tt = u1 * m_alt;
         let rr = rr + tt;
 
-        // Correct for x1 != x2 but y1 = -y2, which can occur because p - 1 is divisible by 3.
-        // libsecp256k1 does this by substituting in an alternative (defined) expression for lambda.
+        // Correct for x1 != x2 but y1 = -y2, which can occur because p - 1 is
+        // divisible by 3. libsecp256k1 does this by substituting in an
+        // alternative (defined) expression for lambda.
         let degenerate = m.is_zero() & rr.is_zero();
         let rr_alt = s1 + s1;
         let m_alt = m_alt + u1;
@@ -803,16 +842,23 @@ impl G2Projective {
 
     /// Adds this point to another point in the affine model.
     pub fn add_mixed(&self, rhs: &G2Affine) -> G2Projective {
-        // This Jacobian point addition technique is based on the implementation in libsecp256k1,
-        // which assumes that rhs has z=1. Let's address the case of zero z-coordinates generally.
+        // This Jacobian point addition technique is based on the implementation
+        // in libsecp256k1, which assumes that rhs has z=1. Let's
+        // address the case of zero z-coordinates generally.
 
-        // If self is the identity, return rhs. Otherwise, return self. The other cases will be
-        // predicated on neither self nor rhs being the identity.
+        // If self is the identity, return rhs. Otherwise, return self. The
+        // other cases will be predicated on neither self nor rhs being
+        // the identity.
         let f1 = self.is_identity();
-        let res = G2Projective::conditional_select(self, &G2Projective::from(rhs), f1);
+        let res = G2Projective::conditional_select(
+            self,
+            &G2Projective::from(rhs),
+            f1,
+        );
         let f2 = rhs.is_identity();
 
-        // If neither are the identity but x1 = x2 and y1 != y2, then return the identity
+        // If neither are the identity but x1 = x2 and y1 != y2, then return the
+        // identity
         let u1 = self.x;
         let s1 = self.y;
         let z = self.z.square();
@@ -820,8 +866,11 @@ impl G2Projective {
         let z = z * self.z;
         let s2 = rhs.y * z;
         let f3 = u1.ct_eq(&u2) & (!s1.ct_eq(&s2));
-        let res =
-            G2Projective::conditional_select(&res, &G2Projective::identity(), (!f1) & (!f2) & f3);
+        let res = G2Projective::conditional_select(
+            &res,
+            &G2Projective::identity(),
+            (!f1) & (!f2) & f3,
+        );
 
         let t = u1 + u2;
         let m = s1 + s2;
@@ -830,8 +879,9 @@ impl G2Projective {
         let tt = u1 * m_alt;
         let rr = rr + tt;
 
-        // Correct for x1 != x2 but y1 = -y2, which can occur because p - 1 is divisible by 3.
-        // libsecp256k1 does this by substituting in an alternative (defined) expression for lambda.
+        // Correct for x1 != x2 but y1 = -y2, which can occur because p - 1 is
+        // divisible by 3. libsecp256k1 does this by substituting in an
+        // alternative (defined) expression for lambda.
         let degenerate = m.is_zero() & rr.is_zero();
         let rr_alt = s1 + s1;
         let m_alt = m_alt + u1;
@@ -880,7 +930,9 @@ impl G2Projective {
         for bit in by
             .iter()
             .rev()
-            .flat_map(|byte| (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8)))
+            .flat_map(|byte| {
+                (0..8).rev().map(move |i| Choice::from((byte >> i) & 1u8))
+            })
             .skip(1)
         {
             acc = acc.double();
@@ -1004,20 +1056,22 @@ impl G2Projective {
         #[cfg(not(feature = "endo"))]
         fn clear_cofactor(this: &G2Projective) -> G2Projective {
             this.multiply(&[
-                0x51, 0x55, 0xa9, 0xaa, 0x5, 0x0, 0x2, 0xe8, 0xb4, 0xf6, 0xbb, 0xde, 0xa, 0x4c,
-                0x89, 0x59, 0xa3, 0xf6, 0x89, 0x66, 0xc0, 0xcb, 0x54, 0xe9, 0x1a, 0x7c, 0x47, 0xd7,
-                0x69, 0xec, 0xc0, 0x2e, 0xb0, 0x12, 0x12, 0x5d, 0x1, 0xbf, 0x82, 0x6d, 0x95, 0xdb,
-                0x31, 0x87, 0x17, 0x2f, 0x9c, 0x32, 0xe1, 0xff, 0x8, 0x15, 0x3, 0xff, 0x86, 0x99,
-                0x68, 0xd7, 0x5a, 0x14, 0xe9, 0xa8, 0xe2, 0x88, 0x28, 0x35, 0x1b, 0xa9, 0xe, 0x6a,
-                0x4c, 0x58, 0xb3, 0x75, 0xee, 0xf2, 0x8, 0x9f, 0xc6, 0xb,
+                0x51, 0x55, 0xa9, 0xaa, 0x5, 0x0, 0x2, 0xe8, 0xb4, 0xf6, 0xbb,
+                0xde, 0xa, 0x4c, 0x89, 0x59, 0xa3, 0xf6, 0x89, 0x66, 0xc0,
+                0xcb, 0x54, 0xe9, 0x1a, 0x7c, 0x47, 0xd7, 0x69, 0xec, 0xc0,
+                0x2e, 0xb0, 0x12, 0x12, 0x5d, 0x1, 0xbf, 0x82, 0x6d, 0x95,
+                0xdb, 0x31, 0x87, 0x17, 0x2f, 0x9c, 0x32, 0xe1, 0xff, 0x8,
+                0x15, 0x3, 0xff, 0x86, 0x99, 0x68, 0xd7, 0x5a, 0x14, 0xe9,
+                0xa8, 0xe2, 0x88, 0x28, 0x35, 0x1b, 0xa9, 0xe, 0x6a, 0x4c,
+                0x58, 0xb3, 0x75, 0xee, 0xf2, 0x8, 0x9f, 0xc6, 0xb,
             ])
         }
 
         clear_cofactor(self)
     }
 
-    /// Converts a batch of `G2Projective` elements into `G2Affine` elements. This
-    /// function will panic if `p.len() != q.len()`.
+    /// Converts a batch of `G2Projective` elements into `G2Affine` elements.
+    /// This function will panic if `p.len() != q.len()`.
     pub fn batch_normalize(p: &[Self], q: &mut [G2Affine]) {
         assert_eq!(p.len(), q.len());
 
@@ -1909,12 +1963,12 @@ fn test_clear_cofactor() {
     let id = G2Projective::identity();
     assert!(bool::from(id.clear_cofactor().is_on_curve()));
 
-    // test the effect on q-torsion points multiplying by h_eff modulo |BlsScalar|
-    // h_eff % q = 0x2b116900400069009a40200040001ffff
+    // test the effect on q-torsion points multiplying by h_eff modulo
+    // |BlsScalar| h_eff % q = 0x2b116900400069009a40200040001ffff
     let h_eff_modq: [u8; 32] = [
-        0xff, 0xff, 0x01, 0x00, 0x04, 0x00, 0x02, 0xa4, 0x09, 0x90, 0x06, 0x00, 0x04, 0x90, 0x16,
-        0xb1, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00,
+        0xff, 0xff, 0x01, 0x00, 0x04, 0x00, 0x02, 0xa4, 0x09, 0x90, 0x06, 0x00,
+        0x04, 0x90, 0x16, 0xb1, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ];
     assert_eq!(generator.clear_cofactor(), generator.multiply(&h_eff_modq));
     assert_eq!(

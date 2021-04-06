@@ -2,8 +2,6 @@ use crate::fp::*;
 use crate::fp2::*;
 
 #[cfg(feature = "canon")]
-use canonical::Canon;
-#[cfg(feature = "canon")]
 use canonical_derive::Canon;
 use core::fmt;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
@@ -11,10 +9,12 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde_req")]
 use serde::{
-    self, de::Visitor, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer,
+    self, de::Visitor, ser::SerializeStruct, Deserialize, Deserializer,
+    Serialize, Serializer,
 };
 
-/// This represents an element $c_0 + c_1 v + c_2 v^2$ of $\mathbb{F}_{p^6} = \mathbb{F}_{p^2} / v^3 - u - 1$.
+/// This represents an element $c_0 + c_1 v + c_2 v^2$ of $\mathbb{F}_{p^6} =
+/// \mathbb{F}_{p^2} / v^3 - u - 1$.
 #[cfg_attr(feature = "canon", derive(Canon))]
 pub struct Fp6 {
     pub c0: Fp2,
@@ -119,7 +119,9 @@ impl<'de> Deserialize<'de> for Fp6 {
                             "c0" => Ok(Field::C0),
                             "c1" => Ok(Field::C1),
                             "c2" => Ok(Field::C2),
-                            _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
+                            _ => Err(serde::de::Error::unknown_field(
+                                value, FIELDS,
+                            )),
                         }
                     }
                 }
@@ -133,7 +135,10 @@ impl<'de> Deserialize<'de> for Fp6 {
         impl<'de> Visitor<'de> for Fp6Visitor {
             type Value = Fp6;
 
-            fn expecting(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+            fn expecting(
+                &self,
+                formatter: &mut ::core::fmt::Formatter,
+            ) -> ::core::fmt::Result {
                 formatter.write_str("struct Fp6")
             }
 
@@ -141,15 +146,15 @@ impl<'de> Deserialize<'de> for Fp6 {
             where
                 V: serde::de::SeqAccess<'de>,
             {
-                let c0 = seq
-                    .next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
-                let c1 = seq
-                    .next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
-                let c2 = seq
-                    .next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
+                let c0 = seq.next_element()?.ok_or_else(|| {
+                    serde::de::Error::invalid_length(0, &self)
+                })?;
+                let c1 = seq.next_element()?.ok_or_else(|| {
+                    serde::de::Error::invalid_length(0, &self)
+                })?;
+                let c2 = seq.next_element()?.ok_or_else(|| {
+                    serde::de::Error::invalid_length(0, &self)
+                })?;
                 Ok(Fp6 { c0, c1, c2 })
             }
         }
@@ -173,7 +178,9 @@ impl ConditionallySelectable for Fp6 {
 impl ConstantTimeEq for Fp6 {
     #[inline(always)]
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.c0.ct_eq(&other.c0) & self.c1.ct_eq(&other.c1) & self.c2.ct_eq(&other.c2)
+        self.c0.ct_eq(&other.c0)
+            & self.c1.ct_eq(&other.c1)
+            & self.c2.ct_eq(&other.c2)
     }
 }
 
