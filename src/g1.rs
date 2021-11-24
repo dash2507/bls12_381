@@ -1585,4 +1585,31 @@ mod tests {
         assert_eq!(gen, gen_p);
         assert_eq!(ident, ident_p);
     }
+
+    #[test]
+    fn parity_codec_trait() {
+        let x = Fp::from_raw_unchecked([
+            0x9af1f35780fffb82,
+            0x557416ceeea5a52f,
+            0x1e4403e4911a2d97,
+            0xb85bfb438316bf2,
+            0xa3b716c69a9e5a7b,
+            0x1fe9b8ad976dd39,
+        ]);
+
+        let y = Fp::from_raw_unchecked([
+            0xb4f1cc806acfb4e2,
+            0x38c28cba4cf600ed,
+            0x3af1c2f54a01a366,
+            0x96a75ac708a9eb72,
+            0x4253bd59228e50d,
+            0x120114fae4294c21,
+        ]);
+        let a = G1Affine {
+            x,
+            y,
+            infinity: 0u8.into()
+        };
+        a.encode();
+    }
 }
