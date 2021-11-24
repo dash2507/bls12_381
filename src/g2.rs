@@ -8,6 +8,7 @@ use core::borrow::Borrow;
 use core::iter::Sum;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use dusk_bytes::{Error as BytesError, HexDebug, Serializable};
+use parity_scale_codec::Encode;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "canon")]
@@ -29,6 +30,8 @@ pub struct G2Affine {
     pub(crate) y: Fp2,
     infinity: Choice,
 }
+
+impl Encode for G2Affine {}
 
 #[cfg(feature = "canon")]
 impl Canon for G2Affine {

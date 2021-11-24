@@ -12,6 +12,7 @@ use serde::{
     self, de::Visitor, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer,
 };
 
+use parity_scale_codec::{Decode, Encode};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::util::{adc, mac, sbb};
@@ -19,7 +20,7 @@ use crate::util::{adc, mac, sbb};
 // The internal representation of this type is six 64-bit unsigned
 // integers in little-endian order. `Fp` values are always in
 // Montgomery form; i.e., Scalar(a) = aR mod p, with R = 2^384.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Encode, Decode)]
 #[cfg_attr(feature = "canon", derive(Canon))]
 pub struct Fp([u64; 6]);
 

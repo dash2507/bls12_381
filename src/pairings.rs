@@ -10,6 +10,8 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
+use parity_scale_codec::Encode;
+
 #[cfg(feature = "serde_req")]
 use serde::{
     self, de::Visitor, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer,
@@ -298,6 +300,8 @@ pub struct G2Prepared {
     infinity: Choice,
     coeffs: Vec<(Fp2, Fp2, Fp2)>,
 }
+
+impl Encode for G2Prepared {}
 
 #[cfg(feature = "alloc")]
 impl G2Prepared {
