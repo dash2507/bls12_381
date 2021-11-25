@@ -4,6 +4,7 @@
 use canonical_derive::Canon;
 use core::fmt;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use parity_scale_codec::{Decode, Encode};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde_req")]
@@ -13,7 +14,7 @@ use serde::{
 
 use crate::fp::Fp;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Encode, Decode)]
 #[cfg_attr(feature = "canon", derive(Canon))]
 pub struct Fp2 {
     pub c0: Fp,

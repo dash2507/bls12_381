@@ -10,7 +10,7 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
-use parity_scale_codec::Encode;
+use parity_scale_codec::{Decode, Encode};
 
 #[cfg(feature = "serde_req")]
 use serde::{
@@ -287,7 +287,7 @@ impl_binops_additive!(Gt, Gt);
 impl_binops_multiplicative!(Gt, BlsScalar);
 
 #[cfg(feature = "alloc")]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Encode, Decode)]
 /// This structure contains cached computations pertaining to a $\mathbb{G}_2$
 /// element as part of the pairing function (specifically, the Miller loop) and
 /// so should be computed whenever a $\mathbb{G}_2$ element is being used in
@@ -300,8 +300,6 @@ pub struct G2Prepared {
     infinity: Choice,
     coeffs: Vec<(Fp2, Fp2, Fp2)>,
 }
-
-impl Encode for G2Prepared {}
 
 #[cfg(feature = "alloc")]
 impl G2Prepared {
