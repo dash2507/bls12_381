@@ -6,6 +6,7 @@ use canonical_derive::Canon;
 use core::convert::TryFrom;
 use core::fmt;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "serde_req")]
 use serde::{
@@ -20,7 +21,7 @@ use crate::util::{adc, mac, sbb};
 // The internal representation of this type is six 64-bit unsigned
 // integers in little-endian order. `Fp` values are always in
 // Montgomery form; i.e., Scalar(a) = aR mod p, with R = 2^384.
-#[derive(Copy, Clone, Encode, Decode)]
+#[derive(Copy, Clone, Encode, Decode, Serialize, Deserialize)]
 #[cfg_attr(feature = "canon", derive(Canon))]
 pub struct Fp([u64; 6]);
 

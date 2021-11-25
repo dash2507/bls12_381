@@ -4,13 +4,11 @@ use crate::fp2::Fp2;
 use crate::fp6::Fp6;
 use crate::{BlsScalar, G1Affine, G2Affine, G2Projective, BLS_X, BLS_X_IS_NEGATIVE};
 
-use dusk_bytes::Serializable;
-
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
-
+use dusk_bytes::Serializable;
 use parity_scale_codec::{Decode, Encode};
+use serde::{Deserialize, Serialize};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde_req")]
 use serde::{
@@ -287,7 +285,7 @@ impl_binops_additive!(Gt, Gt);
 impl_binops_multiplicative!(Gt, BlsScalar);
 
 #[cfg(feature = "alloc")]
-#[derive(Clone, Debug, Encode, Decode)]
+#[derive(Clone, Debug, Encode, Decode, Serialize, Deserialize)]
 /// This structure contains cached computations pertaining to a $\mathbb{G}_2$
 /// element as part of the pairing function (specifically, the Miller loop) and
 /// so should be computed whenever a $\mathbb{G}_2$ element is being used in

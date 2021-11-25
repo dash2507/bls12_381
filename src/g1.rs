@@ -8,6 +8,7 @@ use core::iter::Sum;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use dusk_bytes::{Error as BytesError, HexDebug, Serializable};
 use parity_scale_codec::{Decode, Encode};
+use serde::{Deserialize, Serialize};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "canon")]
@@ -23,7 +24,7 @@ use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 ///
 /// Values of `G1Affine` are guaranteed to be in the $q$-order subgroup unless an
 /// "unchecked" API was misused.
-#[derive(Copy, Clone, HexDebug, Encode, Decode)]
+#[derive(Copy, Clone, HexDebug, Encode, Decode, Serialize, Deserialize)]
 pub struct G1Affine {
     pub(crate) x: Fp,
     pub(crate) y: Fp,
