@@ -10,6 +10,7 @@ use core::convert::TryFrom;
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, BitAnd, BitXor, Mul, MulAssign, Neg, Sub, SubAssign};
 use dusk_bytes::{Error as BytesError, HexDebug, Serializable};
+use parity_scale_codec::{Decode, Encode};
 use rand_core::{CryptoRng, RngCore};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -21,7 +22,7 @@ use serde::{de::Visitor, Deserialize, Deserializer, Serialize, Serializer};
 // The internal representation of this type is four 64-bit unsigned
 // integers in little-endian order. `Scalar` values are always in
 // Montgomery form; i.e., Scalar(a) = aR mod q, with R = 2^256.
-#[derive(Clone, Copy, Eq, HexDebug)]
+#[derive(Clone, Copy, Eq, HexDebug, Decode, Encode)]
 #[cfg_attr(feature = "canon", derive(Canon))]
 pub struct Scalar(pub [u64; 4]);
 
