@@ -8,6 +8,7 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use dusk_bytes::Serializable;
 use parity_scale_codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
+use parity_subtle as subtle;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde_req")]

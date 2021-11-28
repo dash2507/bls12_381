@@ -14,6 +14,7 @@ use serde::{
 };
 
 use parity_scale_codec::{Decode, Encode};
+use parity_subtle as subtle;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::util::{adc, mac, sbb};

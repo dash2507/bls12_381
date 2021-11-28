@@ -12,6 +12,7 @@ use core::ops::{Add, AddAssign, BitAnd, BitXor, Mul, MulAssign, Neg, Sub, SubAss
 use dusk_bytes::{Error as BytesError, HexDebug, Serializable};
 use parity_scale_codec::{Decode, Encode};
 use rand_core::{CryptoRng, RngCore};
+use parity_subtle as subtle;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde_req")]
