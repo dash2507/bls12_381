@@ -5,9 +5,9 @@ use crate::{
 };
 use dusk_bytes::Serializable;
 
-use alloc::vec::*;
+use sp_std::vec;
+use sp_std::vec::*;
 
-#[cfg(feature = "std")]
 /// Performs multiscalar multiplication reliying on Pippenger's algorithm.
 /// This method was taken from `curve25519-dalek` and was originally made by
 /// Oleg Andreev <oleganza@gmail.com>.
@@ -212,7 +212,7 @@ pub fn msm_variable_base(points: &[G1Affine], scalars: &[Scalar]) -> G1Projectiv
         .map(|w_start| {
             let mut res = zero;
             // We don't need the "zero" bucket, so we only have 2^c - 1 buckets
-            let mut buckets = alloc::vec![zero; (1 << c) - 1];
+            let mut buckets = vec![zero; (1 << c) - 1];
             scalars
                 .iter()
                 .zip(points)

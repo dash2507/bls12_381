@@ -22,9 +22,6 @@
 // involve various binary operators, and so this lint is triggered unnecessarily.
 #![allow(clippy::suspicious_arithmetic_impl)]
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
-
 #[cfg(test)]
 #[macro_use]
 extern crate std;
@@ -79,8 +76,8 @@ mod pairings;
 #[cfg(feature = "pairings")]
 pub use pairings::{pairing, Gt, MillerLoopResult};
 
-#[cfg(all(feature = "pairings", feature = "alloc"))]
+#[cfg(all(feature = "pairings"))]
 pub use pairings::{multi_miller_loop, G2Prepared};
 
-#[cfg(all(feature = "groups", feature = "alloc"))]
+#[cfg(all(feature = "groups"))]
 pub mod multiscalar_mul;

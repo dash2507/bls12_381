@@ -7,8 +7,8 @@ use crate::{BlsScalar, G1Affine, G2Affine, G2Projective, BLS_X, BLS_X_IS_NEGATIV
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use dusk_bytes::Serializable;
 use parity_scale_codec::{Decode, Encode};
-use serde::{Deserialize, Serialize};
 use parity_subtle as subtle;
+use serde::{Deserialize, Serialize};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde_req")]
@@ -16,8 +16,8 @@ use serde::{
     self, de::Visitor, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer,
 };
 
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
+use sp_std::vec;
+use sp_std::vec::Vec;
 
 /// Represents results of a Miller loop, one of the most expensive portions
 /// of the pairing function. `MillerLoopResult`s cannot be compared with each
@@ -300,7 +300,6 @@ pub struct G2Prepared {
     coeffs: Vec<(Fp2, Fp2, Fp2)>,
 }
 
-#[cfg(feature = "alloc")]
 impl G2Prepared {
     /// Raw bytes representation
     ///
@@ -308,7 +307,7 @@ impl G2Prepared {
     /// critical. This way, the `infinity` internal attribute will not be stored and the
     /// coefficients will be stored without any check.
     pub fn to_raw_bytes(&self) -> Vec<u8> {
-        let mut bytes = alloc::vec![0u8; 288 * self.coeffs.len()];
+        let mut bytes = vec![0u8; 288 * self.coeffs.len()];
         let mut chunks = bytes.chunks_exact_mut(8);
 
         self.coeffs.iter().for_each(|(a, b, c)| {

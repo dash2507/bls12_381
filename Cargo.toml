@@ -23,6 +23,7 @@ canonical = {version = "0.6", optional = true}
 canonical_derive = {version = "0.6", optional = true}
 dusk-bytes = "0.1"
 parity-scale-codec = { version = "2.0", default-features = false, features = ["derive"] }
+sp-std = { default-features = false, version = '3.0.0' }
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header", "katex-header.html" ]
