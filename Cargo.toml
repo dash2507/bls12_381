@@ -44,8 +44,6 @@ default-features = false
 [features]
 default = ["std"]
 std = [
-    "alloc",
-    "parallel",
     "groups",
     "pairings",
     "endo",
@@ -53,7 +51,6 @@ std = [
     "rand_core/std"
 ]
 groups = []
-parallel = ["rayon"]
 pairings = ["groups"]
 alloc = []
 nightly = ["parity-subtle/nightly"]

@@ -318,8 +318,8 @@ mod tests {
 
     #[test]
     fn msm_variable_base_test() {
-        let points = alloc::vec![G1Affine::generator()];
-        let scalars = alloc::vec![Scalar::from(100u64)];
+        let points = vec![G1Affine::generator()];
+        let scalars = vec![Scalar::from(100u64)];
         let premultiplied = G1Projective::generator() * Scalar::from(100u64);
         let subject = msm_variable_base(&points, &scalars);
         assert_eq!(subject, premultiplied);

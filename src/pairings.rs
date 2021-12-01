@@ -285,7 +285,6 @@ impl<'a, 'b> Mul<&'b BlsScalar> for &'a Gt {
 impl_binops_additive!(Gt, Gt);
 impl_binops_multiplicative!(Gt, BlsScalar);
 
-#[cfg(feature = "alloc")]
 #[derive(Clone, Debug, Encode, Decode, Serialize, Deserialize, PartialEq)]
 /// This structure contains cached computations pertaining to a $\mathbb{G}_2$
 /// element as part of the pairing function (specifically, the Miller loop) and
@@ -470,7 +469,6 @@ impl<'de> Deserialize<'de> for G2Prepared {
     }
 }
 
-#[cfg(feature = "alloc")]
 impl From<G2Affine> for G2Prepared {
     fn from(q: G2Affine) -> G2Prepared {
         struct Adder {
@@ -521,7 +519,6 @@ impl From<G2Affine> for G2Prepared {
     }
 }
 
-#[cfg(feature = "alloc")]
 /// Computes $$\sum_{i=1}^n \textbf{ML}(a_i, b_i)$$ given a series of terms
 /// $$(a_1, b_1), (a_2, b_2), ..., (a_n, b_n).$$
 ///
@@ -781,7 +778,6 @@ mod tests {
         assert_eq!(q, r);
     }
 
-    #[cfg(feature = "alloc")]
     #[test]
     fn test_multi_miller_loop() {
         let a1 = G1Affine::generator();
