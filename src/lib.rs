@@ -27,7 +27,6 @@
 extern crate std;
 
 #[cfg(test)]
-#[cfg(feature = "groups")]
 mod tests;
 
 #[macro_use]
@@ -45,39 +44,25 @@ mod scalar;
 pub use scalar::Scalar as BlsScalar;
 pub use scalar::{GENERATOR, ROOT_OF_UNITY, TWO_ADACITY};
 
-#[cfg(feature = "groups")]
 mod fp;
-#[cfg(feature = "groups")]
 mod fp2;
-#[cfg(feature = "groups")]
 mod g1;
-#[cfg(feature = "groups")]
 mod g2;
 
-#[cfg(feature = "groups")]
 pub use g1::{G1Affine, G1Projective};
-#[cfg(feature = "groups")]
 pub use g2::{G2Affine, G2Projective};
 
-#[cfg(feature = "groups")]
 mod fp12;
-#[cfg(feature = "groups")]
 mod fp6;
 
 // The BLS parameter x for BLS12-381 is -0xd201000000010000
-#[cfg(feature = "groups")]
 const BLS_X: u64 = 0xd201000000010000;
-#[cfg(feature = "groups")]
 const BLS_X_IS_NEGATIVE: bool = true;
 
-#[cfg(feature = "pairings")]
 mod pairings;
 
-#[cfg(feature = "pairings")]
 pub use pairings::{pairing, Gt, MillerLoopResult};
 
-#[cfg(all(feature = "pairings"))]
 pub use pairings::{multi_miller_loop, G2Prepared};
 
-#[cfg(all(feature = "groups"))]
 pub mod multiscalar_mul;
