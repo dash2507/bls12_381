@@ -279,6 +279,7 @@ fn log2(x: usize) -> u32 {
     core::mem::size_of::<usize>() as u32 * 8 - n
 }
 
+#[cfg(feature = "std")]
 mod tests {
     #[allow(unused_imports)]
     use super::*;

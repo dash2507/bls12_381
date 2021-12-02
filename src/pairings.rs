@@ -8,7 +8,7 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use dusk_bytes::Serializable;
 use parity_scale_codec::{Decode, Encode};
 use parity_subtle as subtle;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde_req")]
@@ -296,12 +296,30 @@ impl_binops_multiplicative!(Gt, BlsScalar);
 /// Requires the `alloc` and `pairing` crate features to be enabled.
 pub struct G2Prepared {
     infinity: Choice,
-    #[serde(serialize_with = "serialize_coeffs")]
+    #[serde(
+        serialize_with = "serialize_coeffs",
+        deserialize_with = "deserialize_coeffs"
+    )]
     coeffs: Vec<(Fp2, Fp2, Fp2)>,
 }
 
-fn serialize_coeffs<S>(coeffs: &Vec<(Fp2, Fp2, Fp2)>, se: S) -> Result<S::Ok, S::Error> where S: Serializer {
-    se.serialize_i32(50)
+fn serialize_coeffs<S>(coeffs: &Vec<(Fp2, Fp2, Fp2)>, se: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    use serde::ser::SerializeSeq;
+    let mut seq = se.serialize_seq(Some(coeffs.len()))?;
+    for coeff in coeffs {
+        seq.serialize_element(coeff)?;
+    }
+    seq.end()
+}
+
+fn deserialize_coeffs<'de, D>(de: D) -> Result<Vec<(Fp2, Fp2, Fp2)>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(vec![])
 }
 
 impl G2Prepared {
