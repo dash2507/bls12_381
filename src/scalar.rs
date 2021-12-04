@@ -12,7 +12,7 @@ use core::ops::{Add, AddAssign, BitAnd, BitXor, Mul, MulAssign, Neg, Sub, SubAss
 use dusk_bytes::{Error as BytesError, HexDebug, Serializable};
 use parity_scale_codec::{Decode, Encode};
 use parity_subtle as subtle;
-use rand_core::{CryptoRng, RngCore};
+use rand_core::RngCore;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde_req")]
@@ -475,19 +475,11 @@ impl Scalar {
     /// provided rng.
     ///
     /// By `rng` we mean any Rng that implements: `Rng` + `CryptoRng`.
-    pub fn random<T>(rand: &mut T) -> Scalar
-    where
-        T: RngCore + CryptoRng,
-    {
-        let mut bytes = [0u8; Self::SIZE];
-        rand.fill_bytes(&mut bytes);
+    pub fn random(mut rand: impl RngCore) -> Scalar {
+        let mut random_bytes = [0; 64];
+        rand.fill_bytes(&mut random_bytes[..]);
 
-        // Ensure that the value is lower than `MODULUS`.
-        // Since modulus has 254-bits or less, we cut our bytes
-        // to get cannonical Scalars.
-        bytes[31] &= 0b0011_1111;
-
-        Scalar::from_bytes(&bytes).unwrap_or_default()
+        Scalar::from_bytes_wide(&random_bytes)
     }
 
     /// Reduces the scalar and returns it multiplied by the montgomery

@@ -182,9 +182,6 @@ fn to_radix_2w(scalar: &Scalar, w: usize) -> [i8; 43] {
 
 /// Performs a Variable Base Multiscalar Multiplication.
 pub fn msm_variable_base(points: &[G1Affine], scalars: &[Scalar]) -> G1Projective {
-    #[cfg(feature = "parallel")]
-    use rayon::prelude::*;
-
     let c = if scalars.len() < 32 {
         3
     } else {
@@ -197,9 +194,6 @@ pub fn msm_variable_base(points: &[G1Affine], scalars: &[Scalar]) -> G1Projectiv
     let zero = G1Projective::identity();
     let window_starts: Vec<_> = (0..num_bits).step_by(c).collect();
 
-    #[cfg(feature = "parallel")]
-    let window_starts_iter = window_starts.into_par_iter();
-    #[cfg(not(feature = "parallel"))]
     let window_starts_iter = window_starts.into_iter();
 
     // Each window is of size `c`.
