@@ -17,7 +17,7 @@ exclude = [".github/workflows/ci.yml",
 [dependencies]
 byteorder = {version = "1.4.3", default-features = false}
 serde = { version = "1.0.125", default-features = false, features = ["derive"] }
-rand_core = {version="0.6", default-features = false, package="rand_core", path="../rand/rand_core"}
+rand_core = {version="0.6", default-features = false, path = "../rand/rand_core"}
 canonical = {version = "0.6", optional = true}
 canonical_derive = {version = "0.6", optional = true}
 dusk-bytes = { version = "0.1", default-features = false }
