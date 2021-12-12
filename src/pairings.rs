@@ -319,7 +319,8 @@ fn deserialize_coeffs<'de, D>(de: D) -> Result<Vec<(Fp2, Fp2, Fp2)>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Ok(vec![])
+    let s = Deserialize::deserialize(de).unwrap();
+    Ok(vec![s])
 }
 
 impl G2Prepared {
