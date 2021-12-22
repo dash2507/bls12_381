@@ -7,8 +7,8 @@ use crate::{BlsScalar, G1Affine, G2Affine, G2Projective, BLS_X, BLS_X_IS_NEGATIV
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use dusk_bytes::Serializable;
 use parity_scale_codec::{Decode, Encode};
-use parity_subtle as subtle;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use subtle;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde_req")]

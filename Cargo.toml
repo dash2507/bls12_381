@@ -4,7 +4,7 @@ description = "Fork of the implementation of the BLS12-381 pairing-friendly elli
 documentation = "https://github.com/dusk-network/bls12_381"
 homepage = "https://github.com/dusk-network/bls12_381"
 license = "MIT/Apache-2.0"
-name = "plonk-bls12_381"
+name = "fullcodec-bls12_381"
 repository = "https://github.com/dusk-network/bls12_381"
 version = "0.2.0"
 keywords = ["cryptography", "bls12_381", "zk-snarks", "ecc", "elliptic-curve"]
@@ -36,9 +36,10 @@ name = "groups"
 harness = false
 required-features = ["groups"]
 
-[dependencies.parity-subtle]
-version = "0.1.1"
+[dependencies.subtle]
+version = "0.2.0"
 default-features = false
+package = "fullcodec-subtle"
 
 [features]
 canon = ["canonical", "canonical_derive"]

@@ -11,8 +11,8 @@ use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, BitAnd, BitXor, Mul, MulAssign, Neg, Sub, SubAssign};
 use dusk_bytes::{Error as BytesError, HexDebug, Serializable};
 use parity_scale_codec::{Decode, Encode};
-use parity_subtle as subtle;
 use rand_core::RngCore;
+use subtle;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde_req")]

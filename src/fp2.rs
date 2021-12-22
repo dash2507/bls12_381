@@ -5,8 +5,8 @@ use canonical_derive::Canon;
 use core::fmt;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use parity_scale_codec::{Decode, Encode};
-use parity_subtle as subtle;
 use serde::{Deserialize, Serialize};
+use subtle;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde_req")]
