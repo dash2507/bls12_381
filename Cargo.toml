@@ -8,25 +8,26 @@ name = "dusk-bls12_381"
 repository = "https://github.com/dusk-network/bls12_381"
 version = "0.8.0"
 keywords = ["cryptography", "bls12_381", "zk-snarks", "ecc", "elliptic-curve"]
-categories =["Algorithms", "Cryptography", "Development tools"]
+categories = ["Algorithms", "Cryptography", "Development tools"]
 edition = "2018"
-exclude = [".github/workflows/ci.yml",
-".gitignore",
-]
+exclude = [".github/workflows/ci.yml", ".gitignore"]
 
 [dependencies]
-byteorder = {version = "1.4.3", default-features = false}
+byteorder = { version = "1.4.3", default-features = false }
 serde = { version = "1.0.125", default-features = false, features = ["derive"] }
-rand_core = {version="0.6", default-features = false}
-canonical = {version = "0.6", optional = true}
-canonical_derive = {version = "0.6", optional = true}
+rand_core = { version = "0.6", default-features = false }
+canonical = { version = "0.6", optional = true }
+canonical_derive = { version = "0.6", optional = true }
 dusk-bytes = { version = "0.1", default-features = false }
-parity-scale-codec = { version = "2.0", default-features = false, features = ["derive"] }
-sp-std = { default-features = false, version = '3.0.0' }
-subtle = { git = "https://github.com/AstarNetwork/subtle", branch = "main", default-features = false }
+parity-scale-codec = { version = "3.0", default-features = false, features = [
+  "derive",
+] }
+sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
+subtle = { git = "https://github.com/dash2507/subtle", branch = "fix-tests", default-features = false }
+
 
 [package.metadata.docs.rs]
-rustdoc-args = [ "--html-in-header", "katex-header.html" ]
+rustdoc-args = ["--html-in-header", "katex-header.html"]
 
 [dev-dependencies]
 criterion = "0.2.11"
